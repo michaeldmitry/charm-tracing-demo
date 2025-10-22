@@ -25,7 +25,9 @@ terraform apply
 Then, wait until everything settles down and all charms are in active/idle.
 
 ## Instrument your charm with ops[tracing]
-TODO
+### K8s Charms
+
+### Machine Charms
 
 ## Deploy & Integrate your charm with Tempo
 After instrumenting your charm, pack and deploy it:
@@ -34,11 +36,12 @@ cd <charm-path>
 charmcraft pack
 juju deploy <charm-path> $(yq eval '.resources | to_entries | map("--resource \(.key)=\(.value.upstream-source)") | .[]' charmcraft.yaml)
 ```
-
-Then, if it's a K8s charm, integrate it directly with Tempo
+### K8s Charms
+If it's a K8s charm, integrate it directly with Tempo
 ```bash
 juju integrate <your-charm-app-name>:charm-tracing tempo
 ```
+### Machine Charms
 Or else if it's a machine charm:
 
 1. In your machine model, deploy an otel collector
