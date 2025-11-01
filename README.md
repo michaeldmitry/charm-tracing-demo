@@ -11,18 +11,20 @@ On your machine, make sure you have the following prerequisites met:
 - [Charmcraft](https://snapcraft.io/charmcraft) >= 3
 - A bootsrapped K8s Juju controller
 
-## Add a COS model
+## Add a COS K8s model
 This is the juju K8s model where the testing tracing setup will be deployed
 
-`juju add-model cos`
+```bash
+juju add-model cos
+```
 
 ## Deploy a testing tracing setup
-In this directory, use terraform to deploy the module:
+In this directory, use `terraform` to deploy the module:
 ```bash
 terraform init
-terraform apply
+terraform apply -var="model=cos" -auto-approve
 ```
-Then, wait until everything settles down and all charms are in active/idle.
+Wait for a couple of minutes (~6m) until all deployed charms are in active/idle.
 
 ## Instrument your charm with ops[tracing]
 TODO
@@ -35,38 +37,41 @@ charmcraft pack
 juju deploy <charm-path> $(yq eval '.resources | to_entries | map("--resource \(.key)=\(.value.upstream-source)") | .[]' charmcraft.yaml)
 ```
 
+### K8s charm
 Then, if it's a K8s charm, integrate it directly with Tempo
 ```bash
 juju integrate <your-charm-app-name>:charm-tracing tempo
 ```
-Or else if it's a machine charm:
 
-1. In your machine model, deploy an otel collector
+### Machine charm
+If it's a machine charm, it's recommended to use the `cos_agent` interface.
 
-```bash
-juju deploy opentelemetry-collector otelcol
-```
-
-2. Integrate your charm with otel collector over `cos-agent`
-```bash
-juju integrate <your-charm-app-name> otelcol:cos-agent
-```
-
-3. cmr otel collector with Tempo
-In your K8s model:
+1. In the COS K8s model:
 
 ```bash
 juju offer tempo:tracing
 ```
 
-In your machine model:
+2. In your machine model, deploy an otel collector
+
 ```bash
-juju consume admin/cos.tracing
-juju integrate tracing otelcol:send-charm-traces
+juju deploy opentelemetry-collector otelcol --channel 2/edge
 ```
+
+3. Integrate your charm with otel collector over `cos-agent`
+```bash
+juju integrate <your-charm-app-name> otelcol:cos-agent
+```
+
+4. CMR with Tempo:
+```bash
+juju consume <k8s-controller>:admin/cos.tempo
+juju integrate otelcol:send-traces tempo
+```
+> It's ok if `otelcol` is in `blocked/idle`. Charm traces should still go through.
 ## See your charm traces in action
 
-To open Grafana's UI, you can:
+To open Grafana's UI, In your COS K8s model, you can:
 ```bash
 juju run grafana/0 get-admin-password
 ```
@@ -77,6 +82,12 @@ username: admin
 password: <whatever was outputted from the juju action>
 ```
 
-Then, go to `Toggle Menu` → `Explore` → select `Tempo` datasource → Add filters to view traces from your charm → `Run query`
+Then,
+1. Open the `Toggle Menu`(☰) in the top-left corner
+2. Select `Explore`
+3. In the datasource dropdown, choose your Tempo datasource
+4. Use the Filters section to search for your charm’s `Service Name`
+5. Click `Run query` to view traces from your charm
+
 
 Now, all what's left is to inspect your spans and look for potentials bottlenecks! 🔍

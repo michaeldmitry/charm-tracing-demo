@@ -3,15 +3,22 @@ terraform {
   required_providers {
     juju = {
       source  = "juju/juju"
-      version = ">= 0.14.0"
+      version = "< 1.0.0"
     }
   }
+}
+
+# variables
+variable "model" {
+  description = "tracing setup juju model. Defaults to `cos`."
+  type        = string
+  default     = "cos"
 }
 
 # tempo cluster
 resource "juju_application" "tempo_coordinator" {
   name  = "tempo"
-  model = "cos"
+  model = var.model
   trust = true
   units = 1
 
@@ -23,7 +30,7 @@ resource "juju_application" "tempo_coordinator" {
 
 resource "juju_application" "tempo_worker" {
   name  = "tempo-worker"
-  model = "cos"
+  model = var.model
   trust = true
   units = 1
 
@@ -35,7 +42,7 @@ resource "juju_application" "tempo_worker" {
 
 resource "juju_application" "tempo_s3" {
   name  = "tempo-s3"
-  model = "cos"
+  model = var.model
   trust = true
   units = 1
 
@@ -46,7 +53,7 @@ resource "juju_application" "tempo_s3" {
 }
 
 resource "juju_integration" "coordinator_to_s3" {
-  model = "cos"
+  model = var.model
 
   application {
     name     = juju_application.tempo_s3.name
@@ -60,7 +67,7 @@ resource "juju_integration" "coordinator_to_s3" {
 }
 
 resource "juju_integration" "coordinator_to_worker" {
-  model = "cos"
+  model = var.model
 
   application {
     name     = juju_application.tempo_coordinator.name
@@ -76,7 +83,7 @@ resource "juju_integration" "coordinator_to_worker" {
 # grafana
 resource "juju_application" "grafana" {
   name  = "grafana"
-  model = "cos"
+  model = var.model
   trust = true
   units = 1
 
@@ -89,7 +96,7 @@ resource "juju_application" "grafana" {
 # traefik
 resource "juju_application" "traefik" {
   name  = "traefik"
-  model = "cos"
+  model = var.model
   trust = true
   units = 1
 
@@ -102,7 +109,7 @@ resource "juju_application" "traefik" {
 # ingress relations (to accomodate for machine charms)
 resource "juju_integration" "tempo_ingress" {
 
-  model = "cos"
+  model = var.model
 
   application {
     name     = juju_application.tempo_coordinator.name
@@ -117,7 +124,7 @@ resource "juju_integration" "tempo_ingress" {
 
 resource "juju_integration" "grafana_ingress" {
 
-  model = "cos"
+  model = var.model
 
   application {
     name     = juju_application.grafana.name
@@ -133,7 +140,7 @@ resource "juju_integration" "grafana_ingress" {
 # grafana source relations
 resource "juju_integration" "grafana_source" {
 
-  model = "cos"
+  model = var.model
 
   application {
     name     = juju_application.tempo_coordinator.name
@@ -143,21 +150,5 @@ resource "juju_integration" "grafana_source" {
   application {
     name     = juju_application.grafana.name
     endpoint = "grafana-source"
-  }
-}
-
-# charm tracing
-resource "juju_integration" "grafana_charm_tracing" {
-
-  model = "cos"
-
-  application {
-    name     = juju_application.tempo_coordinator.name
-    endpoint = "tracing"
-  }
-
-  application {
-    name     = juju_application.grafana.name
-    endpoint = "charm-tracing"
   }
 }
