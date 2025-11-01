@@ -21,8 +21,8 @@ juju add-model cos
 ## Deploy a testing tracing setup
 In this directory, use `terraform` to deploy the module:
 ```bash
-terraform init
-terraform apply -var="model=cos" -auto-approve
+terraform -chdir=terraform init
+terraform -chdir=terraform apply -var="model=cos" -auto-approve
 ```
 Wait for a couple of minutes (~6m) until all deployed charms are in active/idle.
 
