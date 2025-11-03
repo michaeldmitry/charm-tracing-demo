@@ -27,7 +27,35 @@ terraform -chdir=terraform apply -var="model=cos" -auto-approve
 Wait for a couple of minutes (~6m) until all deployed charms are in active/idle.
 
 ## Instrument your charm with ops[tracing]
-TODO
+
+### Instrument a Kubernetes charm
+
+Step 1: add a `charm-tracing` realtion to your `charmcraft.yaml`:
+```yaml
+requires:
+    charm-tracing:
+        interface: tracing
+        limit: 1
+        optional: true
+```
+
+Step 2: change your `ops` dependency to `ops[tracing]` in `pyproject.toml` or `requirements.txt`.
+
+Step 3: instantiate the `Tracing` object in your charm's `__init__`:
+```py
+    def __init__(self, framework: ops.Framework):
+        super().__init__(framework)
+        self.tracing = ops.tracing.Tracing(self, "charm-tracing")
+        ...
+```
+
+Note that you don't need an extra import, `ops.tracing` is a namespace, not a module.
+
+Step 4: run unit tests to check against typos or silly errors.
+
+### Instrument a machine charm
+
+TBD
 
 ## Deploy & Integrate your charm with Tempo
 After instrumenting your charm, pack and deploy it:
