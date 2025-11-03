@@ -30,7 +30,7 @@ Wait for a couple of minutes (~6m) until all deployed charms are in active/idle.
 
 ### Instrument a Kubernetes charm
 
-Step 1: add a `charm-tracing` realtion to your `charmcraft.yaml`:
+Step 1: add a `charm-tracing` relation to your `charmcraft.yaml`:
 ```yaml
 requires:
     charm-tracing:
