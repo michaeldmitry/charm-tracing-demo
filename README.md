@@ -39,7 +39,7 @@ requires:
         optional: true
 ```
 
-Step 2: change your `ops` dependency to `ops[tracing]` in `pyproject.toml` or `requirements.txt`.
+Step 2: change your `ops` dependency to `ops[tracing]` in `pyproject.toml` or `requirements.txt` and update the lock file, if any.
 
 Step 3: instantiate the `Tracing` object in your charm's `__init__`:
 ```py
@@ -55,7 +55,46 @@ Step 4: run unit tests to check against typos or silly errors.
 
 ### Instrument a machine charm
 
-TBD
+Step 1: add a `cos-agent` relation to your `charmcraft.yaml`:
+```yaml
+provides: 
+  cos-agent:
+    interface: cos_agent
+    limit: 1
+    optional: true
+```
+Step 2: change your `ops` dependency to `ops[tracing]` in `pyproject.toml` or `requirements.txt` and update the lock file, if any.
+
+Step 3: fetch the `cos_agent` charm library
+```bash
+charmcraft fetch-lib charms.grafana_agent.v0.cos_agent
+```
+
+Step 4: instantiate the `COSAgentProvider` object in your charm's `__init__`:
+```py
+...
+import ops
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider, charm_tracing_config
+...
+    def __init__(self, framework: ops.Framework):
+        super().__init__(framework)
+        self._cos_agent = COSAgentProvider(
+            self,
+            tracing_protocols=["otlp_http"],
+        )
+        ...
+
+    def _reconcile_charm_tracing(self):
+        endpoint, _ = charm_tracing_config(self._cos_agent, None)
+        if not endpoint:
+            return
+        ops.tracing.set_destination(
+            url=endpoint + "/v1/traces",
+            ca=None,
+        )
+```
+
+Note that this instrumentation is just a basic setup to send charm traces to Tempo over plain HTTP. For more production-ready code, you’ll likely need to handle CA certs (since Tempo would probably run behind TLS) and have a more mature Observability instrumentation in place (logging, metrics scraping, dashboards, alert rules, etc.).
 
 ## Deploy & Integrate your charm with Tempo
 After instrumenting your charm, pack and deploy it:
