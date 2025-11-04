@@ -83,6 +83,7 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider, charm_tracing_co
             tracing_protocols=["otlp_http"],
         )
         ...
+        self._reconcile_charm_tracing()
 
     def _reconcile_charm_tracing(self):
         endpoint, _ = charm_tracing_config(self._cos_agent, None)
